@@ -9,7 +9,7 @@ resource "random_string" "random_suffix" {
 }
 
 locals {
-  name = coalesce(var.cluster_name, "${basename(path.cwd)}-${random_string.random_suffix.result}")
+  name         = coalesce(var.cluster_name, "${basename(path.cwd)}-${random_string.random_suffix.result}")
   cluster_name = local.name
   region       = var.aws_region
 
@@ -26,6 +26,7 @@ provider "kubernetes" {
   host                   = module.eks_blueprints.eks_cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks_blueprints.eks_cluster_certificate_authority_data)
   token                  = data.aws_eks_cluster_auth.this.token
+  config_path            = "~/.kube/config"
 }
 
 provider "helm" {
@@ -33,6 +34,7 @@ provider "helm" {
     host                   = module.eks_blueprints.eks_cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks_blueprints.eks_cluster_certificate_authority_data)
     token                  = data.aws_eks_cluster_auth.this.token
+    config_path            = "~/.kube/config"
   }
 }
 
