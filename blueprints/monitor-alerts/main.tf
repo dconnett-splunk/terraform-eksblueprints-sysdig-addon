@@ -2,6 +2,12 @@ provider "aws" {
   region = local.region
 }
 
+# Doc https://registry.terraform.io/providers/sysdiglabs/sysdig/latest/docs
+provider "sysdig" {
+  sysdig_monitor_api_token = var.sysdig_monitor_api_token
+  sysdig_monitor_url       = var.sysdig_monitor_url
+}
+
 resource "random_string" "random_suffix" {
   length  = 4
   special = false
@@ -18,7 +24,7 @@ locals {
 
   tags = {
     Blueprint  = local.name
-    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.21.0"
+    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprint?ref=v4.21.0"
   }
 }
 
@@ -160,45 +166,48 @@ module "eks_blueprints_kubernetes_addons" {
   tags = local.tags
 }
 
-# Creating namespace with the Kubernetes provider instead of reliying on auto-creation in the helm_release.
-resource "kubernetes_namespace" "workloadnamespace" {
-  metadata {
-    name = var.workloads_namespace
-  }
+# Create a notification channel
+# Documentation about notification channels resources
+# https://registry.terraform.io/providers/sysdiglabs/sysdig/latest/docs
+resource "sysdig_monitor_notification_channel_pagerduty" "pagerduty1" {
+  enabled                = true
+  name                   = "Example - PagerDuty integration with Sysdig"
+  account                = "account"
+  service_key            = "XXXXXXXXXXXXX"
+  service_name           = "sysdig"
+  notify_when_ok         = true
+  notify_when_resolved   = true
+  send_test_notification = false
 }
 
-# Deploy Falco Event Generator
-resource "helm_release" "falcoeventgen" {
-  chart      = "event-generator"
-  name       = "falcosecurity"
-  namespace  = var.workloads_namespace
-  repository = "https://falcosecurity.github.io/charts"
-  version    = "0.1.1"
+# Set up a metric and conditions to trigger the alert
+resource "sysdig_monitor_alert_v2_metric" "sample" {
 
-  set {
-    name  = "podSecurityPolicy.enabled"
-    value = false
+  name              = "high cpu used"
+  severity          = "high"
+  metric            = "sysdig_container_cpu_used_percent"
+  group_aggregation = "avg"
+  time_aggregation  = "avg"
+  operator          = ">"
+  threshold         = 75
+  group_by          = ["kube_pod_name"]
+
+  scope {
+    label    = "kube_cluster_name"
+    operator = "in"
+    values   = [local.cluster_name]
   }
 
-  set {
-    name  = "server.persistentVolume.enabled"
-    value = false
+  scope {
+    label    = "kube_deployment_name"
+    operator = "equals"
+    values   = ["my_deployment"]
   }
 
-  values = [templatefile("${path.module}/values-eventgen.yaml", {
-    falcoeventsCommand = "test"
-  })]
-}
+  notification_channels {
+    id                     = sysdig_monitor_notification_channel_pagerduty.pagerduty1.id
+    renotify_every_minutes = 60
+  }
 
-# Deploy Juice-Shop (vulnerable workload)
-resource "helm_release" "juiceshop" {
-  chart      = "juice-shop"
-  name       = "securecodebox"
-  namespace  = var.workloads_namespace
-  repository = "https://charts.securecodebox.io"
-  version    = "3.15.1"
-
-  values = [templatefile("${path.module}/values-juiceshop.yaml", {
-    juiceshopPort = 3000
-  })]
+  trigger_after_minutes = 1
 }
