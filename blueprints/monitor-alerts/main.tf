@@ -2,6 +2,12 @@ provider "aws" {
   region = local.region
 }
 
+# Doc https://registry.terraform.io/providers/sysdiglabs/sysdig/latest/docs
+provider "sysdig" {
+  sysdig_monitor_api_token = var.sysdig_monitor_api_token
+  sysdig_monitor_url       = var.sysdig_monitor_url
+}
+
 resource "random_string" "random_suffix" {
   length  = 4
   special = false
@@ -18,7 +24,7 @@ locals {
 
   tags = {
     Blueprint  = local.name
-    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.21.0"
+    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprint?ref=v4.21.0"
   }
 }
 
@@ -99,9 +105,9 @@ module "eks_blueprints" {
     mg_5 = {
       node_group_name = "managed-ondemand"
 
-      instance_types = ["m5.2xlarge"]
+      instance_types = ["m5.large"]
       capacity_type  = "ON_DEMAND"
-      disk_size      = 150
+      disk_size      = 50
 
       desired_size    = 3
       max_size        = 3
@@ -160,136 +166,48 @@ module "eks_blueprints_kubernetes_addons" {
   tags = local.tags
 }
 
-
-# resource "aws_ebs_volume" "stackrox" {
-#   availability_zone = format("%s%s", var.aws_region, "a")
-#   size              = 50
-
-#   tags = {
-#     Name = "StackRox"
-#   }
-# }
-
-# resource "aws_ebs_volume" "stackrox" {
-#   availability_zone = data.aws_availability_zones.available.names[0]
-#   size              = 50
-#   type              = "gp2"
-#   tags = {
-#     Name = "stackrox-db"
-#   }
-# }
-module "storage" {
-  source = "./storage"
+# Create a notification channel
+# Documentation about notification channels resources
+# https://registry.terraform.io/providers/sysdiglabs/sysdig/latest/docs
+resource "sysdig_monitor_notification_channel_pagerduty" "pagerduty1" {
+  enabled                = true
+  name                   = "Example - PagerDuty integration with Sysdig"
+  account                = "account"
+  service_key            = "XXXXXXXXXXXXX"
+  service_name           = "sysdig"
+  notify_when_ok         = true
+  notify_when_resolved   = true
+  send_test_notification = false
 }
 
-resource "kubernetes_namespace" "stackrox_ns" {
-  metadata {
-    name = "stackrox"
+# Set up a metric and conditions to trigger the alert
+resource "sysdig_monitor_alert_v2_metric" "sample" {
+
+  name              = "high cpu used"
+  severity          = "high"
+  metric            = "sysdig_container_cpu_used_percent"
+  group_aggregation = "avg"
+  time_aggregation  = "avg"
+  operator          = ">"
+  threshold         = 75
+  group_by          = ["kube_pod_name"]
+
+  scope {
+    label    = "kube_cluster_name"
+    operator = "in"
+    values   = [local.cluster_name]
   }
-}
-resource "aws_security_group" "stackrox_efs_sg" {
-  name        = "stackrox_ef_sg"
-  description = "StackRox EFS Security Group"
-  vpc_id      = module.vpc.vpc_id
 
-
-}
-
-
-resource "aws_efs_mount_target" "stackrox_efs_mt" {
-  count          = length(module.vpc.private_subnets)
-  file_system_id = module.storage.efs_id
-  subnet_id      = module.vpc.private_subnets[count.index]
-  # VPC Default Security Group
-  security_groups = [module.vpc.default_security_group_id]
-
-}
-
-
-resource "kubernetes_persistent_volume" "stackrox_pv" {
-  metadata {
-    name = "stackrox-pv"
+  scope {
+    label    = "kube_deployment_name"
+    operator = "equals"
+    values   = ["my_deployment"]
   }
-  spec {
-    capacity = {
-      storage = "100Gi"
-    }
-    storage_class_name = "gp2"
-    access_modes       = ["ReadWriteOnce"]
-    persistent_volume_source {
-      csi {
-        driver        = "efs.csi.aws.com"
-        volume_handle = module.storage.efs_id
-      }
-    }
-    # persistent_volume_source {
 
-    #   aws_elastic_block_store {
-    #     volume_id = module.storage.aws_ebs_volume_id
-    #   }
-    persistent_volume_reclaim_policy = "Delete"
+  notification_channels {
+    id                     = sysdig_monitor_notification_channel_pagerduty.pagerduty1.id
+    renotify_every_minutes = 60
   }
+
+  trigger_after_minutes = 1
 }
-
-# resource "kubernetes_persistent_volume" "stackrox" {
-#   metadata {
-#     name = "stackrox-db"
-#   }
-#   spec {
-#     capacity = {
-#       storage = "50Gi"
-#     }
-#     access_modes = ["ReadWriteMany"]
-#     persistent_volume_source {
-#       aws_elastic_block_store {
-#         volume_id = aws_ebs_volume.stackrox.id
-#         fs_type   = "ext4"
-#       }
-#     }
-#     persistent_volume_reclaim_policy = "Retain"
-#   }
-# }
-
-# resource "kubernetes_persistent_volume_claim" "stackrox_pvc" {
-#   # wait_until_bound = false
-#   metadata {
-#     name      = "stackrox-db"
-#     namespace = "stackrox"
-#   }
-#   spec {
-#     access_modes = ["ReadWriteMany"]
-#     resources {
-#       requests = {
-#         storage = "50Gi"
-#       }
-#     }
-#     volume_name        = kubernetes_persistent_volume.stackrox_pv.metadata.0.name
-#     storage_class_name = "gp2"
-
-#   }
-# }
-
-# locals {
-#   central_services_values = templatefile("central-services.yaml", {})
-
-# }
-
-# locals {
-#   secured_cluster_values = templatefile("secured-cluster-services.yaml", {})
-# }
-
-# resource "helm_release" "stackrox_central_services" {
-#   name       = "stackrox-central-services"
-#   repository = "https://raw.githubusercontent.com/stackrox/helm-charts/main/opensource/"
-#   chart      = "stackrox-central-services"
-#   namespace  = "stackrox"
-#   values     = [local.central_services_values]
-# }
-
-# resource "helm_release" "stackrox_secured_cluster_services" {
-#   name       = "stackrox-secured-cluster-services"
-#   repository = "https://raw.githubusercontent.com/stackrox/helm-charts/main/opensource/"
-#   chart      = "stackrox-secured-cluster-services"
-#   namespace  = "stackrox"
-#   values     = [local.secured_cluster_values]
-# }

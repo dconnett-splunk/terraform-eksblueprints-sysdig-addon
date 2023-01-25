@@ -11,9 +11,12 @@ This project contains the [Sysdig](https://sysdig.com) Terraform add-on for [AWS
 
 With this [Sysdig Addon for EKS Blueprints](https://github.com/sysdiglabs/terraform-eksblueprints-sysdig-addon) you can provision EKS clusters tailored to your needs and secured from day-zero as they are deployed together with the [Sysdig agents](https://docs.sysdig.com/en/docs/installation/sysdig-agent/). This add-on and the blueprints extends the framework [AWS EKS Blueprints](https://github.com/aws-ia/terraform-aws-eks-blueprints).
 
-- **Getting Started Blueprint** The [Getting Started Blueprint](/blueprints/getting-started/) provisions a basic cluster with the most common Sysdig instrumentation for both Secure and Monitor use cases.  
+- **Getting Started** The [Getting Started Blueprint](/blueprints/getting-started/) provisions a basic cluster with the most common Sysdig instrumentation for both Secure and Monitor use cases.  
 
-- **Security Laboratory Blueprint** The [Security Lab Blueprint](/blueprints/lab-security/) creates an cluster with an example application to generate suspicious runtime events and vulnerabilities to be detected out of the box by the Sysdig probe that is also installed with this automation.  
+- **Security Laboratory** The [Security Lab Blueprint](/blueprints/lab-security/) creates a cluster with an example application to generate suspicious runtime events and vulnerabilities to be detected out of the box by the Sysdig probe that is also installed with this automation.  
+
+- **Monitor and Alerting** The [Monitor and alerting](/blueprints/monitor-alerts/) set up a cluster monitored by the sysdig agents and defines Notification Channels and Alerts as code.
+
 
 ## Requirements
 
@@ -21,52 +24,13 @@ With this [Sysdig Addon for EKS Blueprints](https://github.com/sysdiglabs/terraf
 * AWS Command Line and credentials
 * A Sysdig account. You can register your [Sysdig Free Trial](https://sysdig.com/company/start-free/) and start experimenting on how to secure an EKS cluster now.
 
-## Terraform Documentation
-
-<!--- BEGIN_TF_DOCS --->
-
-### Providers
-
-| Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 3.72 |
-| <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.10 |
-
-### Modules
-
-| Name | Source | Version |
-|------|--------|---------|
-| <a name="module_helm_addon"></a> [helm\_addon](#module\_helm\_addon) | github.com/aws-samples/aws-eks-accelerator-for-terraform//modules/kubernetes-addons/helm-addon | n/a |
-
-### Resources
-
-| Name | Type |
-|------|---------|
-| <a name="resource_random_string.id"></a> [random\_string](#resource\_random\_string) | resource |
-
-
-### Inputs
-
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_addon_context"></a> [addon\_context](#input\_addon\_context) | Input configuration for the addon | `any` | n/a | yes |
-| <a name="input_helm_config"></a> [helm\_config](#input\_helm\_config) | Helm chart configuration | `any` | `{}` | no |
-| <a name="input_manage_via_gitops"></a> [manage\_via\_gitops](#input\_manage\_via\_gitops) | Determines if the add-on should be managed via GitOps | `bool` | `false` | no |
-
-### Outputs
-
-| Name | Description |
-|------|-------------|
-| <a name="output_argocd_gitops_config"></a> [argocd\_gitops\_config](#output\_argocd\_gitops\_config) | Configuration used for managing the add-on with ArgoCD |
-
-<!--- END_TF_DOCS --->
-
 ## Training
 
 * EKS Blueprints for Terraform official workshop: https://catalog.workshops.aws/eks-blueprints-terraform/en-US
 
 * Sysdig AWS workshops: https://sysdig.awsworkshop.io
 
+## Terraform Documentation
 <!-- BEGIN_TF_DOCS -->
 ### Inputs
 
