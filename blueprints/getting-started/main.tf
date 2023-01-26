@@ -18,7 +18,7 @@ locals {
 
   tags = {
     Blueprint  = local.name
-    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.21.0"
+    GithubRepo = "github.com/aws-ia/terraform-aws-eks-blueprints"
   }
 }
 
@@ -82,12 +82,58 @@ module "vpc" {
   tags = local.tags
 }
 
+module "storage" {
+  source = "./storage"
+}
+
+resource "kubernetes_namespace" "stackrox_ns" {
+  metadata {
+    name = "stackrox"
+  }
+}
+resource "aws_security_group" "stackrox_efs_sg" {
+  name        = "stackrox_ef_sg"
+  description = "StackRox EFS Security Group"
+  vpc_id      = module.vpc.vpc_id
+
+
+}
+
+
+resource "kubernetes_persistent_volume" "stackrox_pv" {
+  metadata {
+    name = "stackrox-pv"
+  }
+  spec {
+    capacity = {
+      storage = "100Gi"
+    }
+
+    storage_class_name = "gp2"
+    access_modes       = ["ReadWriteOnce"]
+    persistent_volume_source {
+      aws_elastic_block_store {
+        volume_id = module.storage.aws_ebs_volume_id
+        fs_type   = "ext4"
+      }
+    }
+    # persistent_volume_source {
+    #   csi {
+    #     driver        = "efs.csi.aws.com"
+    #     volume_handle = module.storage.aws_ebs_volume_id
+    #   }
+    # }
+    persistent_volume_reclaim_policy = "Delete"
+  }
+}
+
+
 #---------------------------------------------------------------
 # EKS Blueprints
 #---------------------------------------------------------------
 
 module "eks_blueprints" {
-  source = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.21.0"
+  source = "github.com/aws-ia/terraform-aws-eks-blueprints"
 
   cluster_name    = local.cluster_name
   cluster_version = "1.23"
@@ -109,6 +155,13 @@ module "eks_blueprints" {
       max_unavailable = 1
 
       subnet_ids = module.vpc.private_subnets
+      additional_ebs_volumes = [
+        {
+          name = "stackrox-pv"
+          size = 100
+          type = "gp2"
+        }
+      ]
     }
   }
 
@@ -178,77 +231,45 @@ module "eks_blueprints_kubernetes_addons" {
 #     Name = "stackrox-db"
 #   }
 # }
-module "storage" {
-  source = "./storage"
-}
-
-resource "kubernetes_namespace" "stackrox_ns" {
-  metadata {
-    name = "stackrox"
-  }
-}
-resource "aws_security_group" "stackrox_efs_sg" {
-  name        = "stackrox_ef_sg"
-  description = "StackRox EFS Security Group"
-  vpc_id      = module.vpc.vpc_id
 
 
-}
+# resource "aws_efs_mount_target" "stackrox_efs_mt" {
+#   count          = length(module.vpc.private_subnets)
+#   file_system_id = module.storage.efs_id
+#   subnet_id      = module.vpc.private_subnets[count.index]
+#   # VPC Default Security Group
+#   security_groups = [module.vpc.default_security_group_id]
 
 
-resource "aws_efs_mount_target" "stackrox_efs_mt" {
-  count          = length(module.vpc.private_subnets)
-  file_system_id = module.storage.efs_id
-  subnet_id      = module.vpc.private_subnets[count.index]
-  # VPC Default Security Group
-  security_groups = [module.vpc.default_security_group_id]
-
-}
+# }
 
 
-resource "kubernetes_persistent_volume" "stackrox_pv" {
-  metadata {
-    name = "stackrox-pv"
-  }
-  spec {
-    capacity = {
-      storage = "100Gi"
-    }
-    storage_class_name = "gp2"
-    access_modes       = ["ReadWriteOnce"]
-    persistent_volume_source {
-      csi {
-        driver        = "efs.csi.aws.com"
-        volume_handle = module.storage.efs_id
-      }
-    }
-    # persistent_volume_source {
-
-    #   aws_elastic_block_store {
-    #     volume_id = module.storage.aws_ebs_volume_id
-    #   }
-    persistent_volume_reclaim_policy = "Delete"
-  }
-}
-
-# resource "kubernetes_persistent_volume" "stackrox" {
+# resource "kubernetes_persistent_volume" "stackrox_pv" {
 #   metadata {
-#     name = "stackrox-db"
+#     name = "stackrox-pv"
 #   }
 #   spec {
 #     capacity = {
-#       storage = "50Gi"
+#       storage = "100Gi"
 #     }
-#     access_modes = ["ReadWriteMany"]
+#     storage_class_name = "gp2"
+#     access_modes       = ["ReadWriteOnce"]
 #     persistent_volume_source {
-#       aws_elastic_block_store {
-#         volume_id = aws_ebs_volume.stackrox.id
-#         fs_type   = "ext4"
+#       csi {
+#         driver        = "efs.csi.aws.com"
+#         volume_handle = module.storage.efs_id
 #       }
 #     }
-#     persistent_volume_reclaim_policy = "Retain"
+#     # persistent_volume_source {
+
+#     #   aws_elastic_block_store {
+#     #     volume_id = module.storage.aws_ebs_volume_id
+#     #   }
+#     persistent_volume_reclaim_policy = "Delete"
 #   }
 # }
+
+
 
 # resource "kubernetes_persistent_volume_claim" "stackrox_pvc" {
 #   # wait_until_bound = false

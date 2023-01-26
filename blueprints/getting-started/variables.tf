@@ -10,14 +10,14 @@ variable "aws_region" {
 variable "cluster_name" {
   description = "Cluster name"
   type        = string
-  default     = ""
+  default     = "sysdig-splunk-integration-cluster2"
 }
 
 # Sysdig Access Key
 variable "sysdig_accesskey" {
   description = "Sysdig agent access Key (Integrations > Agent Installation > Your access key )"
   type        = string
-  default     = ""
+  default     = "674bf134-f7e1-426a-a799-1756b76f081f"
   sensitive   = true
 }
 
