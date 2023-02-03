@@ -41,3 +41,6 @@ override.tf.json
 
 # Local backups
 *.backup
+blueprints/getting-started/stackrox/generated-values2.yaml
+blueprints/getting-started/stackrox/generated-values.yaml
+blueprints/getting-started/stackrox/stackrox-init-bundle.yaml

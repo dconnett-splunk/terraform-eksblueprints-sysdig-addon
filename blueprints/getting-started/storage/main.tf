@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_ebs_volume" "stackrox_ebs" {
-  availability_zone = "us-east-1a"
+  availability_zone = "us-east-1c"
   size              = 150
   type              = "gp2"
 }

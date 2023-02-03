@@ -89,6 +89,9 @@ module "storage" {
 resource "kubernetes_namespace" "stackrox_ns" {
   metadata {
     name = "stackrox"
+    labels = {
+      name = "stackrox"
+    }
   }
 }
 resource "aws_security_group" "stackrox_efs_sg" {
@@ -99,33 +102,109 @@ resource "aws_security_group" "stackrox_efs_sg" {
 
 }
 
-
-resource "kubernetes_persistent_volume" "stackrox_pv" {
+resource "kubernetes_persistent_volume_claim" "stackrox_pvc" {
   metadata {
-    name = "stackrox-pv"
-  }
-  spec {
-    capacity = {
-      storage = "100Gi"
+    annotations = {
+      "email"                          = "support@stackrox.com"
+      "helm.sh/hook"                   = "pre-install,pre-upgrade"
+      "helm.sh/hook-delete-policy"     = "never"
+      "helm.sh/resource-policy"        = "keep"
+      "meta.helm.sh/release-name"      = "stackrox-central-services"
+      "meta.helm.sh/release-namespace" = "stackrox"
+      "owner"                          = "stackrox"
     }
+    labels = {
+      "app.kubernetes.io/component"  = "central"
+      "app.kubernetes.io/instance"   = "stackrox-central-services"
+      "app.kubernetes.io/managed-by" = "Helm"
+      "app.kubernetes.io/name"       = "stackrox"
+      "app.kubernetes.io/part-of"    = "stackrox-central-services"
+      "app.kubernetes.io/version"    = "3.73.1"
+      "helm.sh/chart"                = "stackrox-central-services-73.1.0"
+    }
+    name      = "stackrox-db"
+    namespace = "stackrox"
+  }
 
-    storage_class_name = "gp2"
+  spec {
     access_modes       = ["ReadWriteOnce"]
-    persistent_volume_source {
-      aws_elastic_block_store {
-        volume_id = module.storage.aws_ebs_volume_id
-        fs_type   = "ext4"
+    storage_class_name = "gp2"
+    volume_name        = "pv-sr-0"
+
+    resources {
+      requests = {
+        storage = "100Gi"
       }
     }
-    # persistent_volume_source {
-    #   csi {
-    #     driver        = "efs.csi.aws.com"
-    #     volume_handle = module.storage.aws_ebs_volume_id
-    #   }
-    # }
-    persistent_volume_reclaim_policy = "Delete"
   }
 }
+
+
+
+# resource "kubernetes_persistent_volume" "stackrox_pv" {
+#   metadata {
+#     name = "stackrox-pv"
+#   }
+#   spec {
+#     capacity = {
+#       storage = "150Gi"
+#     }
+
+#     storage_class_name = "gp2"
+#     access_modes       = ["ReadWriteOnce"]
+#     # persistent_volume_source {
+#     #   aws_elastic_block_store {
+#     #     volume_id = module.storage.aws_ebs_volume_id
+#     #     fs_type   = "ext4"
+#     #   }
+#     # }
+#     persistent_volume_source {
+#       csi {
+#         driver        = "ebs.csi.aws.com"
+#         volume_handle = module.storage.aws_ebs_volume_id
+#       }
+#     }
+#     persistent_volume_reclaim_policy = "Retain"
+#   }
+# }
+
+# This was from ChatGPT, it's not working
+# resource "kubernetes_persistent_volume" "pv" {
+#   metadata {
+#     name = "pv-sr-0"
+#   }
+#   spec {
+#     capacity = {
+#       storage = "150Gi"
+#     }
+#     volume_mode                      = "Filesystem"
+#     access_modes                     = ["ReadWriteOnce"]
+#     persistent_volume_reclaim_policy = "Retain"
+#     claim_ref = {
+#       namespace = "stackrox"
+#       name      = "stackrox-db"
+#     }
+#     storage_class_name = "stackrox-db"
+#     local = {
+#       path = "/mnt"
+#     }
+#     node_affinity {
+#       required {
+#         node_selector_term {
+#           match_expressions {
+#             key      = "topology.kubernetes.io/zone"
+#             operator = "In"
+#             values   = ["us-east-1c"]
+#           }
+#         }
+#       }
+#     }
+#   }
+#   kubernetes = {
+#     context   = var.cluster_name
+#     namespace = "stackrox"
+#   }
+# }
 
 
 #---------------------------------------------------------------
@@ -145,7 +224,7 @@ module "eks_blueprints" {
     mg_5 = {
       node_group_name = "managed-ondemand"
 
-      instance_types = ["m5.2xlarge"]
+      instance_types = ["m5.4xlarge"]
       capacity_type  = "ON_DEMAND"
       disk_size      = 150
 
@@ -155,15 +234,9 @@ module "eks_blueprints" {
       max_unavailable = 1
 
       subnet_ids = module.vpc.private_subnets
-      additional_ebs_volumes = [
-        {
-          name = "stackrox-pv"
-          size = 100
-          type = "gp2"
-        }
-      ]
     }
   }
+
 
   # Add self-managed node groups
   # self_managed_node_groups = {
@@ -176,6 +249,12 @@ module "eks_blueprints" {
   #  }
 
   tags = local.tags
+  # additional_iam_policies = [] # Attach additional IAM policies to the IAM role attached to this worker group
+  # # SSH ACCESS Optional - Recommended to use SSM Session manager
+  # remote_access         = false
+  # ec2_ssh_key           = ""
+  # ssh_security_group_id = ""
+
 }
 
 module "eks_blueprints_kubernetes_addons" {
@@ -278,13 +357,13 @@ module "eks_blueprints_kubernetes_addons" {
 #     namespace = "stackrox"
 #   }
 #   spec {
-#     access_modes = ["ReadWriteMany"]
+#     access_modes = ["ReadWriteOnce"]
 #     resources {
 #       requests = {
-#         storage = "50Gi"
+#         storage = "150Gi"
 #       }
 #     }
-#     volume_name        = kubernetes_persistent_volume.stackrox_pv.metadata.0.name
+#     volume_name        = "stackrox-pv"
 #     storage_class_name = "gp2"
 
 #   }

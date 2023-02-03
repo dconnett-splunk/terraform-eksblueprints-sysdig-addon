@@ -1,0 +1,8 @@
+apiVersion: v2
+appVersion: 3.73.1
+description: Helm Chart for StackRox Central Service
+icon: https://raw.githubusercontent.com/stackrox/stackrox/master/image/templates/helm/shared/assets/StackRox_icon.png
+name: stackrox-central-services
+type: application
+version: 73.1.0
+
