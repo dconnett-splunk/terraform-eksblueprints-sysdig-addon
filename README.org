@@ -51,7 +51,7 @@ Run the following script after createing a =secrets.env= file with the required 
 
 ** Example =secrets.env= file
 #+begin_src sh
-# Secrets file with funny random values
+# Secrets file for DevSecOps Cluster
 CLUSTER_NAME="the-matrix"
 SYSDIG_ACCESS_KEY="0xDEADBEEF"
 STACKROX_ADMIN_PASSWORD="p@ssword1234"
