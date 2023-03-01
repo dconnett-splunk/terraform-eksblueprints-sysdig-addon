@@ -48,6 +48,23 @@ Run =terraform apply=
 
 Run the following script after createing a =secrets.env= file with the required variables defined
 
+
+** Example =secrets.env= file
+#+begin_src sh
+# Secrets file with funny random values
+CLUSTER_NAME="the-matrix"
+SYSDIG_ACCESS_KEY="0xDEADBEEF"
+STACKROX_ADMIN_PASSWORD="p@ssword1234"
+SPLUNK_O11Y_ACCESS_TOKEN="my_token_is_bigger_than_yours"
+SPLUNK_PLATFORM_TOKEN="ForkBomb"
+SPLUNK_PLATFORM_HEC_URL="https://log.allthethings.net"
+AWS_REGION="atlantis"
+TF_VAR_sysdig_accesskey="42"
+TF_VAR_sysdig_collector_endpoint="https://your.sysdig.cloud"
+TF_VAR_nodeanalyzer_api_endpoint="https://my.ai.com"
+TF_VAR_cluster_name=$CLUSTER_NAME
+TF_VAR_aws_region=$AWS_REGION
+#+end_src
 ** :PROPERTIES:
 :id: 63ff72b0-e584-46da-b073-39b9d136c418
 :END:
