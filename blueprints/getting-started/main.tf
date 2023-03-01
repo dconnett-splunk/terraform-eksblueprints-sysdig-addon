@@ -102,46 +102,9 @@ resource "aws_security_group" "stackrox_efs_sg" {
 
 }
 
-resource "kubernetes_persistent_volume_claim" "stackrox_pvc" {
-  metadata {
-    annotations = {
-      "email"                          = "support@stackrox.com"
-      "helm.sh/hook"                   = "pre-install,pre-upgrade"
-      "helm.sh/hook-delete-policy"     = "never"
-      "helm.sh/resource-policy"        = "keep"
-      "meta.helm.sh/release-name"      = "stackrox-central-services"
-      "meta.helm.sh/release-namespace" = "stackrox"
-      "owner"                          = "stackrox"
-    }
-    labels = {
-      "app.kubernetes.io/component"  = "central"
-      "app.kubernetes.io/instance"   = "stackrox-central-services"
-      "app.kubernetes.io/managed-by" = "Helm"
-      "app.kubernetes.io/name"       = "stackrox"
-      "app.kubernetes.io/part-of"    = "stackrox-central-services"
-      "app.kubernetes.io/version"    = "3.73.1"
-      "helm.sh/chart"                = "stackrox-central-services-73.1.0"
-    }
-    name      = "stackrox-db"
-    namespace = "stackrox"
-  }
-
-  spec {
-    access_modes       = ["ReadWriteOnce"]
-    storage_class_name = "gp2"
-    volume_name        = "pv-sr-0"
-
-    resources {
-      requests = {
-        storage = "100Gi"
-      }
-    }
-  }
-}
 
 
-
-# resource "kubernetes_persistent_volume" "stackrox_pv" {
+# Resource "kubernetes_persistent_volume" "stackrox_pv" {
 #   metadata {
 #     name = "stackrox-pv"
 #   }
@@ -210,6 +173,9 @@ resource "kubernetes_persistent_volume_claim" "stackrox_pvc" {
 #---------------------------------------------------------------
 # EKS Blueprints
 #---------------------------------------------------------------
+data "aws_iam_policy" "AmazonEBSCSIDriverPolicy" {
+  arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
 
 module "eks_blueprints" {
   source = "github.com/aws-ia/terraform-aws-eks-blueprints"
@@ -291,7 +257,6 @@ module "eks_blueprints_kubernetes_addons" {
 
   tags = local.tags
 }
-
 
 # resource "aws_ebs_volume" "stackrox" {
 #   availability_zone = format("%s%s", var.aws_region, "a")
@@ -393,3 +358,20 @@ module "eks_blueprints_kubernetes_addons" {
 #   namespace  = "stackrox"
 #   values     = [local.secured_cluster_values]
 # }
+
+#resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
+#  role       = module.eks_blueprints.managed_node_groups[0].worker_node_role_arn
+#role = element(module.eks_blueprints.eks_managed_nodegroup_arns, 0)
+#  role = element(module.eks_blueprints.managed_node_group_iam_roles, 0)
+
+#  policy_arn = data.aws_iam_policy.AmazonEBSCSIDriverPolicy.arn
+#}
+
+data "aws_iam_role" "eks_managed_nodegroup_role" {
+  name = element(module.eks_blueprints.managed_node_group_iam_role_names, 0)
+}
+
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
+  role       = data.aws_iam_role.eks_managed_nodegroup_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+}
