@@ -39,11 +39,15 @@ With this Sysdig Addon for EKS Blueprints, you can provision EKS clusters tailor
 <!-- END_TF_DOCS -->
 * Step By Step Instructions
 Navigate to =./terraform-eksblueprints-sysdig-addon/blueprints/getting-started=
+
 Run =terraform init=
+
 Run =terraform plan=
 
 Run =terraform apply=
+
 Run the following script after createing a =secrets.env= file with the required variables defined
+
 ** :PROPERTIES:
 :id: 63ff72b0-e584-46da-b073-39b9d136c418
 :END:
