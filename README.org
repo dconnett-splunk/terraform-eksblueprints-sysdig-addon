@@ -38,15 +38,19 @@ With this Sysdig Addon for EKS Blueprints, you can provision EKS clusters tailor
 | argocd_gitops_config       | Configuration used for managing the add-on with ArgoCD   |
 <!-- END_TF_DOCS -->
 * Step By Step Instructions
-** Navigate to ~./terraform-eksblueprints-sysdig-addon/blueprints/getting-started~
-** Run ~terraform init~
-** Run ~terraform plan~
-** Run ~terraform apply~
+Navigate to =./terraform-eksblueprints-sysdig-addon/blueprints/getting-started=
+Run =terraform init=
+Run =terraform plan=
+
+Run =terraform apply=
+Run the following script after createing a =secrets.env= file with the required variables defined
 ** :PROPERTIES:
 :id: 63ff72b0-e584-46da-b073-39b9d136c418
 :END:
 #+BEGIN_SRC sh
 #!/bin/bash
+
+source secrets.env
 
 # List of required environment variables
 REQUIRED_VARS=(
@@ -75,9 +79,6 @@ for var in "${REQUIRED_VARS[@]}"; do
     exit 1
   fi
 done
-
-# Use the environment variables in your script
-# ...
 
 
 helm repo add sysdig https://charts.sysdig.com
