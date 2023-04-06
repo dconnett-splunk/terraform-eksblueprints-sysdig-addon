@@ -45,3 +45,6 @@ blueprints/getting-started/stackrox/generated-values2.yaml
 blueprints/getting-started/stackrox/generated-values.yaml
 blueprints/getting-started/stackrox/stackrox-init-bundle.yaml
 blueprints/getting-started/stackrox-init-bundle.yaml
+blueprints/getting-started/stackrox.yaml
+blueprints/getting-started/stackrox/secrets.env
+blueprints/getting-started/stackrox/values.yaml

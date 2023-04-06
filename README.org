@@ -137,7 +137,7 @@ helm upgrade --install -n stackrox --create-namespace stackrox-central-services 
 # After Install
 # Manually update AWS EFS and possibly EBS Security groups to add to VPC
 
-# Decode StackRox secret and save as file
+# Decode StackRox secrets and save as file
 alias decode-stackrox-secret='kubectl -n stackrox get secret stackrox-generated-xseevw -o go-template="{{ index .data \"generated-values.yaml\" }}" | base64 --decode > generated-values.yaml'
 
 # Get Password for StackRox central services

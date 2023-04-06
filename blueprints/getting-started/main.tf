@@ -375,3 +375,115 @@ resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy_attachment" {
   role       = data.aws_iam_role.eks_managed_nodegroup_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
+
+resource "aws_security_group_rule" "stackrox-efs-ingress" {
+  description       = "Allow inbound traffic to Kubernetes service from home network"
+  from_port         = 443
+  protocol          = "tcp"
+  security_group_id = aws_security_group.stackrox_efs_sg.id
+  cidr_blocks       = ["73.161.42.224/32"]
+  to_port           = 443
+  type              = "ingress"
+}
+
+# resource "aws_security_group_rule" "stackrox-efs-ingress" {
+#   description              = "Allow inbound traffic to Kubernetes service from coworker's home network"
+#   from_port                = 18443
+#   protocol                 = "tcp"
+#   security_group_id        = "${aws_security_group.stackrox_efs_sg.id}"
+#   cidr_blocks              = ["<coworker1_ip_address>/32", "<coworker2_ip_address>/32"]
+#   to_port                  = 18443
+#   type                     = "ingress"
+# }
+/* resource "kubernetes_service" "stackrox-central" {
+  metadata {
+    name      = "stackrox-central-svc"
+    namespace = "stackrox"
+    annotations = {
+      "service.beta.kubernetes.io/aws-load-balancer-type" = "alb"
+    }
+  }
+
+  spec {
+    type = "LoadBalancer"
+
+    selector = {
+      app = "central"
+    }
+
+    port {
+      name        = "https"
+      port        = 443
+      target_port = 443
+    }
+
+    load_balancer_source_ranges = ["73.161.42.224/32"]
+  }
+}
+ */
+# resource "kubernetes_service" "stackrox-central" {
+#   metadata {
+#     name      = "stackrox-central-svc"
+#     namespace = "stackrox"
+#   }
+
+#   spec {
+#     type = "NodePort"
+
+#     selector = {
+#       app = "central"
+#     }
+
+#     port {
+#       name        = "https"
+#       port        = 443
+#       target_port = 443
+#       node_port   = 30000
+#     }
+#   }
+# }
+
+/* resource "kubernetes_service" "stackrox-central" {
+  metadata {
+    name      = "stackrox-central-svc"
+    namespace = "stackrox"
+    annotations = {
+      "service.beta.kubernetes.io/aws-load-balancer-type"     = "nlb"
+      "service.beta.kubernetes.io/aws-load-balancer-internal" = "false"
+    }
+  }
+
+  spec {
+    type = "LoadBalancer"
+
+    selector = {
+      app = "central"
+    }
+
+    port {
+      name        = "https"
+      port        = 443
+      target_port = 443
+    }
+  }
+} */
+
+resource "kubernetes_service" "central" {
+  metadata {
+    name      = "central"
+    namespace = "stackrox"
+  }
+
+  spec {
+    selector = {
+      app = "central"
+    }
+
+    port {
+      port        = 443
+      target_port = 8443
+    }
+
+    type = "LoadBalancer"
+  }
+}
