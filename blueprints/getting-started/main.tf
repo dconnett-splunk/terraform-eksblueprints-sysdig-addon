@@ -190,7 +190,7 @@ module "eks_blueprints" {
     mg_5 = {
       node_group_name = "managed-ondemand"
 
-      instance_types = ["m5.4xlarge"]
+      instance_types = ["m5.2xlarge"]
       capacity_type  = "ON_DEMAND"
       disk_size      = 150
 
@@ -224,7 +224,7 @@ module "eks_blueprints" {
 }
 
 module "eks_blueprints_kubernetes_addons" {
-  source = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.21.0//modules/kubernetes-addons"
+  source = "github.com/aws-ia/terraform-aws-eks-blueprints?ref=v4.32.1//modules/kubernetes-addons"
 
   eks_cluster_id       = module.eks_blueprints.eks_cluster_id
   eks_cluster_endpoint = module.eks_blueprints.eks_cluster_endpoint
@@ -468,22 +468,22 @@ resource "aws_security_group_rule" "stackrox-efs-ingress" {
   }
 } */
 
-resource "kubernetes_service" "central" {
-  metadata {
-    name      = "central"
-    namespace = "stackrox"
-  }
+# resource "kubernetes_service" "central" {
+#   metadata {
+#     name      = "central"
+#     namespace = "stackrox"
+#   }
 
-  spec {
-    selector = {
-      app = "central"
-    }
+#   spec {
+#     selector = {
+#       app = "central"
+#     }
 
-    port {
-      port        = 443
-      target_port = 8443
-    }
+#     port {
+#       port        = 443
+#       target_port = 8443
+#     }
 
-    type = "LoadBalancer"
-  }
-}
+#     type = "LoadBalancer"
+#   }
+# }

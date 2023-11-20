@@ -1,12 +1,14 @@
 global:
   sysdig:
-    accessKey: ${sysdigAccessKey}                  # Sysdig Agent Access Key
-    region: ${sysdigRegion}
+    accessKey: 674bf134-f7e1-426a-a799-1756b76f081f # Sysdig Agent Access Key
+    region: us2
   kspm:
     deploy: true
   clusterConfig:
-    name: ${sysdigClusterName}
+    name: sysdig-splunk-integration-cluster2
 agent:
+  image:
+    tag: 12.13.0
   sysdig:
     settings:
       collector_port: 6443
@@ -14,6 +16,8 @@ nodeAnalyzer:
   nodeAnalyzer:
     benchmarkRunner:
       deploy: false
+    hostScanner:
+      deploy: true
   secure:
     vulnerabilityManagement:
-      newEngineOnly: true
+      newEngineOnly: false

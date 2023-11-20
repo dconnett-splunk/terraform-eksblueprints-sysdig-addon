@@ -8,7 +8,9 @@ agent:
 nodeAnalyzer:
   nodeAnalyzer:
     benchmarkRunner:
-      deploy: false
+      deploy: true
+    hostScanner:
+      deploy: true
   secure:
     vulnerabilityManagement:
       newEngineOnly: true
